@@ -25,6 +25,8 @@ const VoiceInput: React.FC<VoiceInputProps> = () => {
       You are a helpful assistant that extracts appointment information.
       
       Input: "${transcription}"
+
+      if the user inputs the name of the doctor then do not include 'Dr.' in the doctor_name for example doctor johnson should be taken as johnson only and not Dr. johnson
       
       Extract and return JSON in the following format:
       {
@@ -130,6 +132,7 @@ const VoiceInput: React.FC<VoiceInputProps> = () => {
         if (date) {
           const parsedDate = new Date(date);
           if (!isNaN(parsedDate.getTime())) {
+            parsedDate.setDate(parsedDate.getDate() + 1);
             dispatch(setDate(parsedDate)); // Set date in Redux
           }
         }

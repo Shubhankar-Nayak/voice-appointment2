@@ -5,6 +5,21 @@ import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../redux/store';
 import { setDoctor } from '../redux/appointmentSlice';
 
+interface TimeSlot {
+  id: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+}
+
+interface Doctor {
+  _id: string;
+  name: string;
+  specialization: string;
+  availableSlots: TimeSlot[];
+  id?: string; // Added to support dropdown mapping
+}
+
 const AppointmentForm: React.FC<{ onAppointmentBooked: () => void }> = ({ onAppointmentBooked }) => {
   const dispatch: AppDispatch = useDispatch();
   const doctorFromState = useSelector((state: RootState) => state.appointment.doctor);
@@ -57,6 +72,9 @@ const AppointmentForm: React.FC<{ onAppointmentBooked: () => void }> = ({ onAppo
         timeSlot: ''
       }));
     }
+    if(doctorFromState) {
+      formData.doctorId = doctorFromState;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -82,8 +100,11 @@ const AppointmentForm: React.FC<{ onAppointmentBooked: () => void }> = ({ onAppo
     return today.toISOString().split('T')[0];
   };
 
-  const getAvailableTimeSlots = () => {
+  const getAvailableTimeSlots = (): TimeSlot[] => {
     const selectedDoctor = doctors.find(d => d.name.toLowerCase() === doctorFromState.toLowerCase());
+    if(dateFromState){
+      formData.date = dateFromState?.toISOString().split('T')[0];
+    }
     const selectedDate = new Date(formData.date);
     const day = selectedDate.getDay();
     return selectedDoctor?.availableSlots.filter(slot => slot.dayOfWeek === day) || [];
@@ -109,7 +130,7 @@ const AppointmentForm: React.FC<{ onAppointmentBooked: () => void }> = ({ onAppo
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-left bg-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             onClick={() => setShowDoctorDropdown(prev => !prev)}
           >
-            {doctorFromState ? `${doctorFromState}` : formData.doctorId ? `Dr. ${formData.doctorId}` : 'Choose a doctor'}
+            {doctorFromState ? `Dr. ${doctorFromState}` : formData.doctorId ? `Dr. ${formData.doctorId}` : 'Choose a doctor'}
           </button>
           {showDoctorDropdown && (
             <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
@@ -146,7 +167,7 @@ const AppointmentForm: React.FC<{ onAppointmentBooked: () => void }> = ({ onAppo
         </div>
 
         {/* Time Slot Selection */}
-        {formData.doctorId && formData.date && (
+        {doctorFromState && dateFromState && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <Clock className="inline h-4 w-4 mr-1" />
