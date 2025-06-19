@@ -22,20 +22,40 @@ const VoiceInput: React.FC<VoiceInputProps> = () => {
 
   async function extractWithGemini(transcription: string) {
     const prompt = `
-      You are a helpful assistant that extracts appointment information.
-      
-      Input: "${transcription}"
+     You are a helpful assistant that extracts appointment information from voice transcriptions.
 
-      if the user inputs the name of the doctor then do not include 'Dr.' in the doctor_name for example doctor johnson should be taken as johnson only and not Dr. johnson
-      
-      Extract and return JSON in the following format:
-      {
-        "patient_name": "",
-        "doctor_name": "",
-        "date": "",
-        "time": "",
-        "purpose": ""
-      }
+        Input: "${transcription}"
+
+        Your task is to extract and return a structured JSON object with the following fields:
+        - "patient_name"
+        - "doctor_name" (If the user says “Dr. Johnson”, extract just "Johnson")
+        - "date" (Standardize to format: "YYYY-MM-DD". Handle expressions like "21st of June", "June 21", "21 June", etc., and convert them to valid ISO date format assuming the current year if not mentioned.)
+        - "time" (Standardize to 24-hour format, e.g., "15:30")
+        - "purpose" (e.g., consultation, check-up, eye pain, etc.)
+
+        Always ensure:
+        - Dates are valid (e.g., "21st of June" becomes "2025-06-21")
+        - Times are realistic and valid (e.g., "3 PM" becomes "15:00")
+
+        Return the result strictly as a JSON object:
+        {
+          "patient_name": "",
+          "doctor_name": "",
+          "date": "",
+          "time": "",
+          "purpose": ""
+        }
+
+        Examples:
+        Input: "I want to book an appointment for Riya with Dr. Gupta on 21st of June at 3 PM for an eye check-up."
+        Output:
+        {
+          "patient_name": "Riya",
+          "doctor_name": "Gupta",
+          "date": "2025-06-21",
+          "time": "15:00",
+          "purpose": "eye check-up"
+        }
     `;
 
     const result = await model.generateContent(prompt);
