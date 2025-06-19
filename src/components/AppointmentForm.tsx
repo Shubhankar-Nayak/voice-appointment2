@@ -17,7 +17,7 @@ interface Doctor {
   name: string;
   specialization: string;
   availableSlots: TimeSlot[];
-  id?: string; // for dropdown compatibility
+  id?: string;
 }
 
 const AppointmentForm: React.FC<{ onAppointmentBooked: () => void }> = ({ onAppointmentBooked }) => {
@@ -55,7 +55,7 @@ const AppointmentForm: React.FC<{ onAppointmentBooked: () => void }> = ({ onAppo
 
   useEffect(() => {
     if (dateFromState) {
-      const formattedDate = dateFromState.toISOString().split('T')[0];
+      const formattedDate = new Date(dateFromState).toISOString().split('T')[0];
       setFormData(prev => ({ ...prev, date: formattedDate }));
     }
   }, [dateFromState]);
@@ -87,8 +87,6 @@ const AppointmentForm: React.FC<{ onAppointmentBooked: () => void }> = ({ onAppo
       purpose: formData.purpose
     };
 
-    console.log(payload)
-
     try {
       await apiClient.post('/appointments', payload);
       setFormData({ date: '', timeSlot: '', purpose: '' });
@@ -108,11 +106,16 @@ const AppointmentForm: React.FC<{ onAppointmentBooked: () => void }> = ({ onAppo
   };
 
   const getAvailableTimeSlots = (): TimeSlot[] => {
-    const selectedDoctor = doctors.find(d => d.name.toLowerCase() === doctorFromState.toLowerCase());
-    if (dateFromState) {
-      formData.date = dateFromState.toISOString().split('T')[0];
-    }
-    const selectedDate = new Date(formData.date);
+    const selectedDoctor = doctors.find(
+      d => d.name.toLowerCase() === doctorFromState.toLowerCase()
+    );
+
+    const selectedDate = dateFromState
+      ? new Date(dateFromState)
+      : new Date(formData.date);
+
+    if (isNaN(selectedDate.getTime())) return [];
+
     const day = selectedDate.getDay();
     return selectedDoctor?.availableSlots.filter(slot => slot.dayOfWeek === day) || [];
   };
@@ -165,8 +168,10 @@ const AppointmentForm: React.FC<{ onAppointmentBooked: () => void }> = ({ onAppo
           </label>
           <input
             type="date"
-            value={dateFromState ? dateFromState.toISOString().split('T')[0] : formData.date}
-            onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value, timeSlot: '' }))}
+            value={formData.date}
+            onChange={(e) =>
+              setFormData(prev => ({ ...prev, date: e.target.value, timeSlot: '' }))
+            }
             min={getMinDate()}
             required
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
@@ -174,7 +179,7 @@ const AppointmentForm: React.FC<{ onAppointmentBooked: () => void }> = ({ onAppo
         </div>
 
         {/* Time Slot Selection */}
-        {doctorFromState && dateFromState && (
+        {doctorFromState && formData.date && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <Clock className="inline h-4 w-4 mr-1" />
@@ -185,7 +190,9 @@ const AppointmentForm: React.FC<{ onAppointmentBooked: () => void }> = ({ onAppo
                 <button
                   key={slot.id}
                   type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, timeSlot: formatTimeSlot(slot) }))}
+                  onClick={() =>
+                    setFormData(prev => ({ ...prev, timeSlot: formatTimeSlot(slot) }))
+                  }
                   className={`p-3 text-sm border rounded-lg transition-colors ${
                     formData.timeSlot === formatTimeSlot(slot)
                       ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
@@ -206,7 +213,9 @@ const AppointmentForm: React.FC<{ onAppointmentBooked: () => void }> = ({ onAppo
           </label>
           <textarea
             value={formData.purpose}
-            onChange={(e) => setFormData(prev => ({ ...prev, purpose: e.target.value }))}
+            onChange={(e) =>
+              setFormData(prev => ({ ...prev, purpose: e.target.value }))
+            }
             rows={4}
             required
             placeholder="Describe your symptoms or reason for the appointment..."
@@ -237,3 +246,4 @@ const AppointmentForm: React.FC<{ onAppointmentBooked: () => void }> = ({ onAppo
 };
 
 export default AppointmentForm;
+
