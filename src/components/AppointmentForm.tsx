@@ -24,6 +24,7 @@ const AppointmentForm: React.FC<{ onAppointmentBooked: () => void }> = ({ onAppo
   const dispatch: AppDispatch = useDispatch();
   const doctorFromState = useSelector((state: RootState) => state.appointment.doctor);
   const dateFromState = useSelector((state: RootState) => state.appointment.date);
+  const [docId, setDocId] = useState("")
 
   const [formData, setFormData] = useState({
     doctorId: '',
@@ -62,28 +63,40 @@ const AppointmentForm: React.FC<{ onAppointmentBooked: () => void }> = ({ onAppo
     }
   }, [dateFromState]);
 
-  const handleDoctorChange = (doctorId: string) => {
-    const selectedDoctor = doctors.find(d => d.name.toLowerCase() === doctorId.toLowerCase());
-    if (selectedDoctor) {
-      dispatch(setDoctor(selectedDoctor.name));
-      setFormData(prev => ({
-        ...prev,
-        doctorId,
-        timeSlot: ''
-      }));
-    }
-    if(doctorFromState) {
-      formData.doctorId = doctorFromState;
-    }
-  };
+  const handleDoctorChange = (doctor: Doctor) => {
+  const selectedDoctor = doctors.find(d => d.name.toLowerCase() === doctor.name.toLowerCase());
+  if (selectedDoctor) {
+    dispatch(setDoctor(selectedDoctor.name)); 
+    setFormData(prev => ({
+      ...prev,
+      doctorId: selectedDoctor._id, 
+      timeSlot: ''
+    }));
+  }
+  setDocId(doctor._id);
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    console.log(docId);
+
+    const selectedDoctor = doctors.find(
+      (doc) => doc.name.toLowerCase() === doctorFromState.toLowerCase()
+    );
+    const doctorId = selectedDoctor?._id;
+
+    // Prepare formData for submission
+    const payload = {
+      ...formData,
+      doctorId: doctorId, // fallback to empty if not found
+    };
+
+    console.log("Submitting appointment form data:", payload);
 
     try {
-      await apiClient.post('/appointments', formData);
+      await apiClient.post('/appointments', payload);
       setFormData({ doctorId: '', date: '', timeSlot: '', purpose: '' });
       dispatch(setDoctor(''));
       onAppointmentBooked();
@@ -138,7 +151,7 @@ const AppointmentForm: React.FC<{ onAppointmentBooked: () => void }> = ({ onAppo
                 <li
                   key={doctor.id}
                   onClick={() => {
-                    handleDoctorChange(doctor.name);
+                    handleDoctorChange(doctor);
                     setShowDoctorDropdown(false);
                   }}
                   className="px-4 py-2 hover:bg-indigo-50 cursor-pointer"
