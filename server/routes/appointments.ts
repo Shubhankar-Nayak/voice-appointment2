@@ -28,13 +28,13 @@ interface PopulatedAppointment {
 // 📅 Create new appointment
 router.post('/', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    const { doctorId, date, timeSlot, purpose } = req.body;
+    const { doctorName, date, timeSlot, purpose } = req.body;
 
-    if (!doctorId || !date || !timeSlot || !purpose) {
+    if (!doctorName || !date || !timeSlot || !purpose) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const doctor = await DoctorModel.findById(doctorId);
+    const doctor = await DoctorModel.findOne({ name: doctorName });
     if (!doctor) {
       return res.status(404).json({ error: 'Doctor not found' });
     }
@@ -45,7 +45,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
     }
 
     const newAppointment = await new AppointmentModel({
-      doctorId,
+      doctorId: doctor._id,
       patientId: req.user!.id,
       date,
       timeSlot,
@@ -79,6 +79,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 
 // 📋 Get appointments for logged-in doctor/patient
 router.get('/', authenticateToken, async (req: AuthRequest, res) => {

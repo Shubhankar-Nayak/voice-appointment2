@@ -17,17 +17,15 @@ interface Doctor {
   name: string;
   specialization: string;
   availableSlots: TimeSlot[];
-  id?: string; // Added to support dropdown mapping
+  id?: string; // for dropdown compatibility
 }
 
 const AppointmentForm: React.FC<{ onAppointmentBooked: () => void }> = ({ onAppointmentBooked }) => {
   const dispatch: AppDispatch = useDispatch();
   const doctorFromState = useSelector((state: RootState) => state.appointment.doctor);
   const dateFromState = useSelector((state: RootState) => state.appointment.date);
-  const [docId, setDocId] = useState("")
 
   const [formData, setFormData] = useState({
-    doctorId: '',
     date: '',
     timeSlot: '',
     purpose: ''
@@ -38,14 +36,13 @@ const AppointmentForm: React.FC<{ onAppointmentBooked: () => void }> = ({ onAppo
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [showDoctorDropdown, setShowDoctorDropdown] = useState(false);
 
-  // Fetch doctors from backend
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
         const res = await apiClient.get('/doctors');
         const data = res.data.map((doc: any) => ({
           ...doc,
-          id: doc._id // for dropdown compatibility
+          id: doc._id
         }));
         setDoctors(data);
       } catch (err: any) {
@@ -64,40 +61,37 @@ const AppointmentForm: React.FC<{ onAppointmentBooked: () => void }> = ({ onAppo
   }, [dateFromState]);
 
   const handleDoctorChange = (doctor: Doctor) => {
-  const selectedDoctor = doctors.find(d => d.name.toLowerCase() === doctor.name.toLowerCase());
-  if (selectedDoctor) {
-    dispatch(setDoctor(selectedDoctor.name)); 
-    setFormData(prev => ({
-      ...prev,
-      doctorId: selectedDoctor._id, 
-      timeSlot: ''
-    }));
-  }
-  setDocId(doctor._id);
-};
+    dispatch(setDoctor(doctor.name));
+    setFormData(prev => ({ ...prev, timeSlot: '' }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    console.log(docId);
 
     const selectedDoctor = doctors.find(
       (doc) => doc.name.toLowerCase() === doctorFromState.toLowerCase()
     );
-    const doctorId = selectedDoctor?._id;
 
-    // Prepare formData for submission
+    if (!selectedDoctor) {
+      setError('Selected doctor not found.');
+      setLoading(false);
+      return;
+    }
+
     const payload = {
-      ...formData,
-      doctorId: doctorId, // fallback to empty if not found
+      doctorName: selectedDoctor.name,
+      date: formData.date,
+      timeSlot: formData.timeSlot,
+      purpose: formData.purpose
     };
 
-    console.log("Submitting appointment form data:", payload);
+    console.log(payload)
 
     try {
       await apiClient.post('/appointments', payload);
-      setFormData({ doctorId: '', date: '', timeSlot: '', purpose: '' });
+      setFormData({ date: '', timeSlot: '', purpose: '' });
       dispatch(setDoctor(''));
       onAppointmentBooked();
       alert('Appointment booked successfully!');
@@ -115,8 +109,8 @@ const AppointmentForm: React.FC<{ onAppointmentBooked: () => void }> = ({ onAppo
 
   const getAvailableTimeSlots = (): TimeSlot[] => {
     const selectedDoctor = doctors.find(d => d.name.toLowerCase() === doctorFromState.toLowerCase());
-    if(dateFromState){
-      formData.date = dateFromState?.toISOString().split('T')[0];
+    if (dateFromState) {
+      formData.date = dateFromState.toISOString().split('T')[0];
     }
     const selectedDate = new Date(formData.date);
     const day = selectedDate.getDay();
@@ -143,7 +137,7 @@ const AppointmentForm: React.FC<{ onAppointmentBooked: () => void }> = ({ onAppo
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-left bg-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             onClick={() => setShowDoctorDropdown(prev => !prev)}
           >
-            {doctorFromState ? `Dr. ${doctorFromState}` : formData.doctorId ? `Dr. ${formData.doctorId}` : 'Choose a doctor'}
+            {doctorFromState ? `Dr. ${doctorFromState}` : 'Choose a doctor'}
           </button>
           {showDoctorDropdown && (
             <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
@@ -205,7 +199,7 @@ const AppointmentForm: React.FC<{ onAppointmentBooked: () => void }> = ({ onAppo
           </div>
         )}
 
-        {/* Purpose/Symptoms */}
+        {/* Purpose */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Purpose of Visit / Symptoms
