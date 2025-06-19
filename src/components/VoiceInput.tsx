@@ -17,7 +17,7 @@ const VoiceInput: React.FC<VoiceInputProps> = () => {
 
   const recognition = useRef<SpeechRecognition | null>(null);
 
-  const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || '');
+  const genAI = new GoogleGenerativeAI("AIzaSyDCti2rJUHCVkPO7Wd3WTCHRCu5a_Q56ME");
   const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
   async function extractWithGemini(transcription: string) {
